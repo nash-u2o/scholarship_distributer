@@ -1,0 +1,5 @@
+# Scholarship Distributer
+## What is it?
+This program is the work in progress result of my mathematics senior seminar. As MC has had a significant increase in enrollment due to the Speed Scholarship, the current system of assigning scholarships by hand has quickly become less than optimal. To aid the foundations office in scholarship distribution, this program assigns scholarships based solely on whether a student meets the criteria of the scholarship or not.
+## How does it work?
+Currently, the [Hopcroft-Karp Algorithm](https://en.wikipedia.org/wiki/Hopcroft%E2%80%93Karp_algorithm#:~:text=In%20computer%20science,%20the%20Hopcroft%E2%80%93Karp#:~:text=In%20computer%20science,%20the%20Hopcroft%E2%80%93Karp) is being used to distribute scholarships, deviating from the previous research on this issue that used the Hungarian Method to assign scholarships based on a weighted system. The Hopcroft-Karp Algorithm is a maximum-cardinality matching algorithm that takes in a bipartite graph (in our case, students and scholarships) and returns an optimal matching of students to scholarships.
