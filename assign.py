@@ -14,25 +14,29 @@ from scipy.optimize import linear_sum_assignment
 
 
 def preprocess(scholarship_path: str) -> dict:
+    print("Preprocessing Scholarships")
+
     # Read scholarships and students in as dataframes
-    scholarships = pd.read_excel(scholarship_path)
+    # scholarships = pd.read_excel(scholarship_path)
+    scholarships = pd.read_csv(scholarship_path)
+
     # Fill nan columns with empty space
+    # Deal with deprecation warning
     scholarships.fillna(value="", inplace=True)
     scholarships = scholarships.map(lambda x: x.lower() if isinstance(x, str) else x)
 
     cols = scholarships.columns
+    identifier = cols[0]
     rows = scholarships.iterrows()
-
-    print(cols)
 
     scholarship_reqs = {}
     for index, row in rows:
-        print(row)
-        row_name = row["Scholarship Name"]
+        # print(row)
+        row_name = row[identifier]
         measured_attributes = {}
         for column in cols:
             # If attribute in scholarship exists
-            if row[column] != "" and column != "Scholarship Name":
+            if row[column] != "" and column != "identifier":
                 # Fix this later to accomodate columns with multiple entries by splitting row[column] and processing it that way
                 measured_attributes[column] = row[column]
         scholarship_reqs[row_name] = measured_attributes
@@ -40,7 +44,9 @@ def preprocess(scholarship_path: str) -> dict:
     return scholarship_reqs
 
 
+# ACT, CHURCH, COUNTY, GENDER, GPA, HIGH SCHOOL, MAJOR, MARRIED, MINISTRY, MINISTRY DEPENDENT, NEED, MINORITY, STATE
 def qualify_matrix(scholarship_reqs: dict, student_df: pd.DataFrame) -> list[list]:
+    print("Creating the qualification matrix")
     matrix = []
     students = student_df.iterrows()
 
@@ -119,8 +125,12 @@ def qualify_matrix(scholarship_reqs: dict, student_df: pd.DataFrame) -> list[lis
 def qualify_graph(
     scholarship_reqs: dict, students_df: pd.DataFrame, matrix: list[list]
 ) -> list[nx.Graph]:
+
+    print("Creating the graph")
     graph = nx.Graph()
-    print(matrix)
+    # print(matrix)
+
+    identifier = students_df.columns[0]
 
     # Add scholarship nodes
     for key in scholarship_reqs:
@@ -130,11 +140,12 @@ def qualify_graph(
     # Add student nodes
     rows = students_df.iterrows()
     for index, student in rows:
-        graph.add_node(student["Person Banner ID"], name=student["Person Banner ID"])
+        # graph.add_node(student["Person Banner ID"], name=student["Person Banner ID"])
+        graph.add_node(student[identifier], name=student[identifier])
 
     # Connect qualified student nodes to scholarships
     scholarship_names = list(scholarship_reqs.keys())
-    print(students_df["Person Banner ID"])
+    # print(students_df["Person Banner ID"])
     # print(scholarship_names.loc[:, "Person Banner ID"])
     for i in range(len(matrix)):
         student_qual_list = matrix[i]
@@ -144,9 +155,10 @@ def qualify_graph(
                 scholarship_qual == 1
             ):  # This can probably be removed if we are using max_weight_matching
                 # graph.add_edge(student, scholarship)
-                print(students_df.iloc[i]["Person Banner ID"], scholarship_names[j])
+                # print(students_df.iloc[i]["Person Banner ID"], scholarship_names[j])
                 graph.add_edge(
-                    students_df.iloc[i]["Person Banner ID"],
+                    # students_df.iloc[i]["Person Banner ID"],
+                    students_df.iloc[i][identifier],
                     scholarship_names[j],
                     weight=scholarship_qual,
                 )
@@ -166,6 +178,7 @@ def qualify_graph(
     return subgraphs
 
 
+# Scholarship path then student path
 if __name__ == "__main__":
     # For now, run using python main.py <scholarship_path> <student_path>
     # No error detection right now. Will need some eventually
@@ -179,7 +192,8 @@ if __name__ == "__main__":
         scholarship_reqs = preprocess(scholarship_path)
         scholarship_names = list(scholarship_reqs.keys())
 
-        students = pd.read_excel(student_path)
+        # students = pd.read_excel(student_path)
+        students = pd.read_csv(student_path)
         students.fillna(value="", inplace=True)
         students = students.map(lambda x: x.lower() if isinstance(x, str) else x)
 
@@ -220,6 +234,7 @@ if __name__ == "__main__":
         #     i += 1
 
         blossom_matches = []
+        print("Finding the most optimal matches")
         for graph in subgraphs:
             blossom_matches.append(max_weight_matching(graph))
 
