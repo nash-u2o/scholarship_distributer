@@ -12,7 +12,7 @@ def save_csv(headers, data, name: str):
     while True:
         file_str = f"{name}.csv" if i == 0 else f"{name}({i}).csv"
         if not os.path.exists(file_str):
-            with open(f"{name}.csv", "w", newline="") as file:
+            with open(file_str, "w", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(headers)
                 writer.writerows(data)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "MINORITY",
         "STATE",
     ]
-    student_rows = create_student(10000)
+    student_rows = create_student(100)
     save_csv(headers, student_rows, "random_students")
-    scholarship_rows = create_scholarship(1000)
+    scholarship_rows = create_scholarship(50)
     save_csv(headers, scholarship_rows, "random_scholarships")

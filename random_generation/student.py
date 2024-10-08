@@ -817,7 +817,7 @@ def major():
             "math",
             "journalism",
             "education",
-            "science",
+            "physics",
             "computer science",
             "art",
             "kinesiology",
