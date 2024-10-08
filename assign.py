@@ -1,4 +1,4 @@
-# TO DO: Fix column naming
+# TO DO: Get the actual data I can expect. Can't do much until I know what I'm dealing with
 
 import csv
 import os
@@ -56,67 +56,66 @@ def qualify_matrix(scholarship_reqs: dict, student_df: pd.DataFrame) -> list[lis
         qualified_scholarship = []
         for key in scholarship_reqs:
             # Scholarship block
-            qualify = 1
+            qualify = 1  # Maybe add to qualify for preferences
 
             scholarship = scholarship_reqs[key]
             for attr in scholarship:
                 # Scholarship attribute block
-
-                # Skip mismatched columns or Scholarship. Probably not needed. Deal w/ later
-                if scholarship[attr] == "" or attr == "Scholarship":
-                    continue
-
-                # Deal with case sensitivity later
-                if attr == "NEED":
-                    if scholarship[attr] == "yes" and student[attr] != "yes":
-                        qualify -= 1
-                elif attr == "MAJOR":
-                    # Now that every student has a more general major assignment, this should work better
-                    if scholarship[attr] != "unrestricted" and scholarship[attr] != "":
-                        if student[attr] not in scholarship[attr]:
+                if scholarship[attr] != "":
+                    # If version conflicts aren't an error, use match-case
+                    if attr == "ACT":
+                        if int(student[attr]) < int(scholarship[attr]):
                             qualify -= 1
-                elif attr == "GENDER":
-                    # Just compare first character (for now)
-                    if scholarship[attr] != "":
-                        if student[attr] != scholarship[attr][0]:
+                    elif attr == "CHURCH":
+                        if student[attr] != scholarship[attr]:
                             qualify -= 1
-                # elif attr == "Classification": Doesn't seem to matter for us
-                #     if student[attr] not in scholarship[attr]:
-                #         qualify -= 1
-                elif attr == "GPA":
-                    # Try except in case a type conversion goes wrong
-                    if scholarship[attr] != "":
-                        if student[attr] == "":
+                    # Classify gender by first letter. To be safe, strip leading and trailing spaces off
+                    elif attr == "GENDER":
+                        if (
+                            str.strip(student[attr])[0]
+                            != str.strip(scholarship[attr])[0]
+                        ):
                             qualify -= 1
-                        else:
-                            try:
-                                if float(student[attr]) < float(scholarship[attr]):
-                                    qualify -= 1
-                            except:
-                                qualify -= 1
-                elif attr == "HIGH SCHOOL":
-                    if (
-                        scholarship[attr] != ""
-                        and student[attr] not in scholarship[attr]
-                    ):
-                        qualify -= 1
-                elif attr == "MINISTRY":
-                    if (
-                        scholarship[attr] == "call to ministry"
-                        and student[attr] != "yes"
-                    ):
-                        qualify -= 1
-                # IGNORE FOR NOW
-                # Religion qualifications may fall under other religion qualifications and not register. Baptist is Christian, etc...
-                # elif attr == "Religion":  # Oh boy there's a lot of those...
-                #     if student[attr] != scholarship[attr]:
-                #         qualify -= 1
+                    elif attr == "GPA":
+                        if float(student[attr]) < float(scholarship[attr]):
+                            qualify -= 1
+                    elif attr == "HIGH SCHOOL":
+                        if student[attr] != scholarship[attr]:
+                            qualify -= 1
+                    elif attr == "MAJOR":
+                        if (
+                            scholarship[attr] != "unrestricted"
+                            and student[attr] != scholarship[attr]
+                        ):
+                            qualify -= 1
+                    elif attr == "MARRIED":
+                        if student[attr] != scholarship[attr]:
+                            qualify -= 1
+                    elif attr == "MINISTRY":
+                        if student[attr] != scholarship[attr]:
+                            qualify -= 1
+                    elif attr == "MINISTRY DEPENDENT":
+                        if student[attr] != scholarship[attr]:
+                            qualify -= 1
+                    elif attr == "NEED":
+                        if (
+                            scholarship[attr] == "yes"
+                            and student[attr] != scholarship[attr]
+                        ):
+                            qualify -= 1
+                    elif attr == "MINORITY":
+                        if (
+                            scholarship[attr] == "yes"
+                            and student[attr] != scholarship[attr]
+                        ):
+                            qualify -= 1
+                    elif attr == "STATE":
+                        if student[attr] != scholarship[attr]:
+                            qualify -= 1
 
-                # elif attr =
-
-                # Failed scholarship. May need to modify for preferences later
                 if qualify <= 0:
                     break
+
             qualified_scholarship.append(qualify)
         matrix.append(qualified_scholarship)
     return matrix
@@ -178,6 +177,20 @@ def qualify_graph(
     return subgraphs
 
 
+def save_csv(headers, data, name: str):
+    i = 0
+    while True:
+        file_str = f"{name}.csv" if i == 0 else f"{name}({i}).csv"
+        if not os.path.exists(file_str):
+            with open(file_str, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(headers)
+                writer.writerows(data)
+            break
+        else:
+            i += 1
+
+
 # Scholarship path then student path
 if __name__ == "__main__":
     # For now, run using python main.py <scholarship_path> <student_path>
@@ -187,6 +200,8 @@ if __name__ == "__main__":
     else:
         scholarship_path = sys.argv[1]
         student_path = sys.argv[2]
+
+        scholarships = pd.read_csv(scholarship_path)
 
         # print(scholarship_path)
         scholarship_reqs = preprocess(scholarship_path)
@@ -198,11 +213,9 @@ if __name__ == "__main__":
         students = students.map(lambda x: x.lower() if isinstance(x, str) else x)
 
         matrix = qualify_matrix(scholarship_reqs, students)
-        # for row in matrix:
-        #     print(row)
-        # print()
 
-        row_ind, col_ind = linear_sum_assignment(matrix, maximize=True)
+        # Hungarian Matches
+        # row_ind, col_ind = linear_sum_assignment(matrix, maximize=True)
 
         # The current way this works is a great example of why the linear_sum_assignment
         # doesn't work. It will still give out every scholarship even if they aren't qualified for
@@ -217,34 +230,85 @@ if __name__ == "__main__":
         #         matrix[i][col_ind[i]],
         #     )
 
-        subgraphs = qualify_graph(scholarship_reqs, students, matrix)
-
         matches = []
+        subgraphs = qualify_graph(scholarship_reqs, students, matrix)
         for graph in subgraphs:
             matches.append(nx.algorithms.bipartite.hopcroft_karp_matching(graph))
 
         # print("\nHopcroft-karp Matches: ")
         # filtered_matches = {}
-        # i = 0
+        # i = num_matches = 0
         # for match in matches:
         #     # Eliminate duplicates
         #     filtered_matches[i] = {u: v for u, v in match.items() if u < v}
         #     for key in filtered_matches[i]:
         #         print(f"{key}: {filtered_matches[i][key]}")
+        #         num_matches += 1
         #     i += 1
+        # print(num_matches)
 
         blossom_matches = []
         print("Finding the most optimal matches")
         for graph in subgraphs:
             blossom_matches.append(max_weight_matching(graph))
 
-        print("\n\n\n\nBlossom Matches")
+        print("\n\n\nBlossom Matches")
+
+        csv_headers = [
+            "SCHOLARSHIP",
+            "STUDENT",
+            "ACT",
+            "CHURCH",
+            "GENDER",
+            "GPA",
+            "HIGH SCHOOL",
+            "MAJOR",
+            "MARRIED",
+            "MINISTRY",
+            "MINISTRY DEPENDENT",
+            "NEED",
+            "MINORITY",
+            "STATE",
+        ]
+
+        csv_data = []
+
+        num_matches = 0
         for match in blossom_matches:
             for tuple in match:
-                print(f"{tuple[1]}: {tuple[0]}")
+                # Tuple 0 is a scholarship. Else tuple[0] is a student
+                # Very proprietary and inefficient testing code
 
-        # with open("output.csv", "w", newline="") as file:
-        #     fieldnames = ["student", "scholarship"]
-        #     writer = csv.DictWriter(
-        #         file,
-        #     )
+                res = ["" for i in range(len(csv_headers))]
+
+                scholarship_name = ""
+                student_name = ""
+
+                if "sch" in tuple[0]:
+                    student_name = tuple[1]
+                    scholarship_name = tuple[0]
+                else:
+                    student_name = tuple[0]
+                    scholarship_name = tuple[1]
+
+                print(f"{scholarship_name} {student_name}")
+                num_matches += 1
+
+                res[0] = scholarship_name
+                res[1] = student_name
+
+                scholarship = scholarships[scholarships["ID"] == scholarship_name]
+                student = students[students["ID"] == student_name]
+                for label, value in scholarship.items():
+                    if value.iloc[0] != "":
+                        try:
+                            index = csv_headers.index(label)
+                            res[index] = (
+                                f"Scholarship: {value.iloc[0]} Student: {student[label].iloc[0]}"
+                            )
+                        except:
+                            pass
+
+                csv_data.append(res)
+        print(num_matches)
+        # save_csv(headers=csv_headers, data=csv_data, name="sample_matches")
