@@ -141,6 +141,10 @@ def state():
     return ""
 
 
+def value():
+    return random.randint(50, 2000)
+
+
 def create_scholarship(i):
     scholarships = []
 
@@ -161,6 +165,7 @@ def create_scholarship(i):
                 need(),
                 minority(),
                 state(),
+                value(),
             ]
         )
 

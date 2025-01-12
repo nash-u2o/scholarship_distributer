@@ -38,8 +38,9 @@ if __name__ == "__main__":
         "NEED",
         "MINORITY",
         "STATE",
+        "VALUE",
     ]
     student_rows = create_student(100)
     save_csv(headers, student_rows, "random_students")
-    scholarship_rows = create_scholarship(50)
+    scholarship_rows = create_scholarship(300)
     save_csv(headers, scholarship_rows, "random_scholarships")

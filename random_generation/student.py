@@ -893,6 +893,10 @@ def state():
     )
 
 
+def value():
+    return random.choice([2000, 2500, 3000, 4500])
+
+
 # Order of attributes: id, ACT, CHURCH, COUNTY, GENDER, GPA, HIGH SCHOOL, MAJOR, MARRIED, MINISTRY, MINISTRY DEPENDENT, NEED, MINORITY, STATE
 # exclude country for now
 def create_student(i):
@@ -918,6 +922,7 @@ def create_student(i):
                 need(),
                 minority(),
                 state(),
+                value(),
             ]
         )
 
